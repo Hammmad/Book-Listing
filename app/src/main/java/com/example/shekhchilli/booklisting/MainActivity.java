@@ -1,6 +1,9 @@
 package com.example.shekhchilli.booklisting;
 
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -25,8 +28,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
 
@@ -37,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
     EditText book;
     String word;
     private static String apiurl = "https://www.googleapis.com/books/v1/volumes?q=";
-    ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,122 +53,135 @@ public class MainActivity extends AppCompatActivity {
 
     public void SearchClickListener() {
 
-        message = (TextView) findViewById(R.id.message);
+
         Button searchbtn = (Button) findViewById(R.id.button);
-        searchbtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-                if (networkInfo != null && networkInfo.isConnected()) {
-                    // Write code if internrt is working
-                    keyword = book.getText().toString();
-                    message.setText("Internet is Connected");
-                    new API().execute(apiurl + keyword);
-                } else {
-                    message.setText("Internet is not Connected");
+        if (searchbtn != null) {
+            searchbtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                    NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+                    if (networkInfo != null && networkInfo.isConnected()) {
+                        // Write code if internet is working
+                        keyword = book.getText().toString();
+                        keyword = keyword.replaceAll(" ","%20");
+                        new API().execute(apiurl + keyword);
+                        Toast.makeText(MainActivity.this,"connected", Toast.LENGTH_SHORT).show();
+
+                    } else {
+                        Toast.makeText(MainActivity.this,"Internet is not connected", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            }
-        });
+            });
+        }
 
     }
 
 
-    private class API extends AsyncTask<String, Void, String> {
+    private class API extends AsyncTask<String, Void, ArrayList<BookInfo>> {
 
         String result;
+        ProgressDialog dialog;
+
+
 
         @Override
-        protected String doInBackground(String... params) {
-            //String Url = "https://www.googleapis.com/books/v1/volumes?q=";
+        protected void onPreExecute() {
+
+            dialog = new ProgressDialog(MainActivity.this);
+            dialog.setMessage("wait while a minute!");
+            dialog.setTitle("Loading...");
+            dialog.show();
+
+
+        }
+
+        @Override
+        protected ArrayList<BookInfo> doInBackground(String... params) {
+
             InputStream stream = null;
             BufferedReader reader = null;
+            ArrayList<BookInfo> arrayList = new ArrayList<>();
 
             try {
                 URL url = new URL(apiurl + keyword);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setReadTimeout(10000);
-                conn.setConnectTimeout(15000);
+//                conn.setReadTimeout(10000);
+//                conn.setConnectTimeout(15000);
                 conn.setRequestMethod("GET");
-                conn.setDoInput(true);
-
                 conn.connect();
-                int response = conn.getResponseCode();
                 stream = conn.getInputStream();
-                reader = new BufferedReader(new InputStreamReader(stream, "utf-8"), 8);
+                reader = new BufferedReader(new InputStreamReader(stream, "utf-8"));
                 StringBuilder stringBuilder = new StringBuilder();
 
                 String line = null;
                 while ((line = reader.readLine()) != null) {
-                    stringBuilder.append(line + "\n");
+                    stringBuilder.append(line).append("\n");
                 }
                 stream.close();
                 result = stringBuilder.toString();
 
+                Log.e(DEBUG_TAG,stringBuilder.toString());
 
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            // Convert Stream into String using String builder
+                JSONObject rootObject = new JSONObject(result);
 
-//            try{
-//                BufferedReader bReader = new BufferedReader(new InputStreamReader(stream,"utf-8"),8);
-//                StringBuilder stringBuilder = new StringBuilder();
-//
-//                String line = null;
-//                while((line = bReader.readLine()) != null){
-//                    stringBuilder.append(line +"\n");
-//                }
-//                stream.close();
-//                result = stringBuilder.toString();
-//
-//            }catch (Exception e){
-//                Log.e(DEBUG_TAG,e.getMessage());
-//            }
-            return result;
+                JSONArray items = rootObject.getJSONArray("items");
+                for (int i = 0; i < items.length(); i++) {
 
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-
-//            String s = new String(FromStream);
-
-            Log.e(DEBUG_TAG, s);
-            ArrayList<String> arrayList = new ArrayList<String>();
-            try {
-                JSONObject rootObject = new JSONObject(s);
-                Log.e(DEBUG_TAG, "root object created");
-                JSONArray JArray = rootObject.getJSONArray("items");
-                Log.e(DEBUG_TAG, "Array JSON created ");
-                for (int i = 0; i < JArray.length(); i++) {
-                    JSONObject item = JArray.getJSONObject(i);
+                    JSONObject item = items.getJSONObject(i);
 
                     JSONObject volume = item.getJSONObject("volumeInfo");
-                    String title = volume.getString("title");
 
-                    arrayList.add(title);
+
+//
+////                    JSONObject bookCover = item.getJSONObject("imageLinks");
+//
+
+//
+                    String title = volume.getString("title");
+                    String publisher = volume.getString("publisher");
+                    String releaseDate = volume.getString("publishedDate");
+//                    JSONArray authors = volume.getJSONArray("authors");
+//                    String authorname = String.valueOf(authors.get(i));
+
+//
+                    JSONObject imageLinks = volume.getJSONObject("imageLinks");
+                     String thumbnail= imageLinks.getString("thumbnail");
+
+                    URL imageLink =new URL(thumbnail);
+                    Bitmap bitmap = BitmapFactory.decodeStream(imageLink.openConnection().getInputStream());
+
+
+
+
+                    arrayList.add(new BookInfo(bitmap, null, publisher, releaseDate, title));
+
+                    Log.e(DEBUG_TAG, String.valueOf(items.length()));
                 }
 
 
-                Log.e(DEBUG_TAG, String.valueOf(JArray.length()));
-
-                ArrayAdapter<String> adapter = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, arrayList);
-                ListView listView = (ListView) findViewById(R.id.list);
-                listView.setAdapter(adapter);
-                message.setText("code completed");
-
-
+            } catch (IOException e) {
+                e.printStackTrace();
             } catch (JSONException e) {
-                Log.e(DEBUG_TAG, e.getMessage());
-                e.getLocalizedMessage();
+                e.printStackTrace();
             }
+
+            return arrayList;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<BookInfo> bookInfos) {
+
+            dialog.dismiss();
+
+            ListAdapter adapter = new com.example.shekhchilli.booklisting.ListAdapter(MainActivity.this, bookInfos);
+            ListView list = (ListView) findViewById(R.id.list);
+            list.setAdapter(adapter);
 
 
         }
     }
+
 }
 
 

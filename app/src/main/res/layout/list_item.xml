@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="118dp"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <ImageView
+        tools:src = "@mipmap/ic_launcher"
+        android:id="@+id/bookcover_imageview"
+        android:scaleType="fitXY"
+        android:layout_width="88dp"
+        android:layout_height="match_parent" />
+
+    <TextView
+        style="@style/heading"
+        tools:text = "Title"
+        android:id="@+id/booktitle_textview"
+        android:layout_centerInParent="true"
+        android:layout_toRightOf="@id/bookcover_imageview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        style="@style/normalText"
+        tools:text="author"
+        android:id="@+id/bookauthor_textview"
+        android:layout_toRightOf="@id/bookcover_imageview"
+        android:layout_below="@id/booktitle_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        style="@style/sideText"
+        tools:text="Publisher"
+        android:id="@+id/publisher_textview"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:paddingRight="16dp"
+        android:paddingBottom="4dp"
+        android:id="@+id/releasedate_textview"
+        tools:text="23-10-16"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+</RelativeLayout>
